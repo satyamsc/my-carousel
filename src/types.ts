@@ -40,6 +40,8 @@ export interface Template {
     fontSize: string;
     fontWeight: string;
     shadow: string;
+    border?: string;
+    backdropFilter?: string;
   };
   textAlign: 'left' | 'center' | 'right';
   lineHeight: string;
@@ -59,6 +61,7 @@ export interface GenerationOptions {
   maxCharactersPerSlide: number;
   respectSentenceBoundaries: boolean;
   includeSlideNumbers: boolean;
+  numberOfSlides: number;
   exportFormat: 'png' | 'jpg';
   quality: number;
   width: number;
@@ -90,15 +93,25 @@ export interface AppState {
   selectedTemplate: Template;
   slides: Slide[];
   isGenerating: boolean;
+  isAIGenerating: boolean;
   isDarkMode: boolean;
   exportProgress: ExportProgress;
   generationOptions: GenerationOptions;
+  aiGeneratedContent: AISlideContent[] | null;
+  showAIContent: boolean;
+}
+
+export interface AISlideContent {
+  title: string;
+  body: string;
+  imageDescription?: string;
 }
 
 export interface TextSplitterOptions {
   maxCharacters: number;
   respectSentenceBoundaries: boolean;
   minWordsPerSlide: number;
+  maxSlides?: number;
 }
 
 export interface SlideGeneratorOptions {

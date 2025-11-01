@@ -29,7 +29,7 @@ export function generateSlides(
 /**
  * Creates a DOM element for a slide with the specified template styling
  */
-export function createSlideElement(slide: Slide): HTMLElement {
+export function createSlideElement(slide: Slide, includeSlideNumbers: boolean = true): HTMLElement {
   const slideElement = document.createElement('div');
   slideElement.className = 'slide-container';
   
@@ -55,6 +55,9 @@ export function createSlideElement(slide: Slide): HTMLElement {
       font-family: ${slide.template.fontFamily};
       z-index: 10;
       max-width: 300px;
+      ${slide.template.headerCard.border ? `border: ${slide.template.headerCard.border};` : ''}
+      ${slide.template.headerCard.backdropFilter ? `backdrop-filter: ${slide.template.headerCard.backdropFilter};` : ''}
+      ${slide.template.headerCard.backdropFilter ? `-webkit-backdrop-filter: ${slide.template.headerCard.backdropFilter};` : ''}
     `;
 
     // Name and LinkedIn icon
@@ -108,157 +111,224 @@ export function createSlideElement(slide: Slide): HTMLElement {
     slideElement.appendChild(headerCard);
   }
 
-  // Create content structure
+  // Analyze content structure
+  const structured = analyzeContent(slide.content);
+
+  // Create main content wrapper with two-section layout
   const contentWrapper = document.createElement('div');
   contentWrapper.className = 'slide-content';
   contentWrapper.style.cssText = `
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: ${slide.template.textAlign === 'center' ? 'center' : 
-                   slide.template.textAlign === 'right' ? 'flex-end' : 'flex-start'};
     height: 100%;
-    text-align: ${slide.template.textAlign};
-    gap: 1.5rem;
-    padding-left: 6rem;
-    padding-right: 6rem;
-    ${slide.template.headerCard?.enabled ? 'padding-top: 4rem;' : 'padding-top: 2rem;'}
-    padding-bottom: 4rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
   `;
 
-  // For Regular template, create rounded rectangle card with transparent overlay
-  let textContainer;
-  if (slide.template.id === 'regular') {
-    textContainer = document.createElement('div');
-    textContainer.className = 'text-card';
-    textContainer.style.cssText = `
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-radius: 1.5rem;
-      padding: 3rem 2.5rem;
+  // Check if we have structured content (Header/Body format)
+  if (structured.title && structured.body) {
+    // Create container for both sections with spacing
+    const sectionsContainer = document.createElement('div');
+    sectionsContainer.style.cssText = `
+      width: calc(100% - 4rem);
+      height: calc(100% - 4rem);
       margin: 2rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      max-width: 600px;
-      width: 100%;
-    `;
-  } else {
-    textContainer = contentWrapper;
-  }
-
-  // Add main content
-  const structured = analyzeContent(slide.content);
-
-  const contentElement = document.createElement('div');
-  contentElement.className = 'slide-text';
-
-  const textContent = slide.template.id === 'regular' ? 
-    slide.content.toLowerCase() : slide.content;
-  
-  contentElement.textContent = textContent;
-  contentElement.style.cssText = `
-    font-family: ${slide.template.fontFamily};
-    font-size: ${slide.template.fontSize.content};
-    font-weight: ${slide.template.fontWeight.content};
-    color: ${slide.template.textColor};
-    line-height: ${slide.template.lineHeight};
-    letter-spacing: ${slide.template.letterSpacing};
-    max-width: 100%;
-    word-wrap: break-word;
-    hyphens: auto;
-    text-align: center;
-  `;
-
-  let finalContent: HTMLElement = contentElement;
-  if (slide.template.id === 'regular' && (structured.title || structured.body || structured.visual)) {
-    const structuredWrapper = document.createElement('div');
-    structuredWrapper.style.cssText = `
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      text-align: left;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
     `;
 
-    if (structured.title) {
-      const titleEl = document.createElement('div');
-      titleEl.textContent = structured.title;
-      titleEl.style.cssText = `
-        font-family: ${slide.template.fontFamily};
-        font-size: ${slide.template.fontSize.title};
-        font-weight: ${slide.template.fontWeight.title};
-        color: ${slide.template.textColor};
-        letter-spacing: ${slide.template.letterSpacing};
-      `;
-      structuredWrapper.appendChild(titleEl);
-    }
+    // Create Header Section - Standalone box with all corners rounded
+    const headerSection = document.createElement('div');
+    headerSection.className = 'slide-header-section';
+    headerSection.style.cssText = `
+      height: 20%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.6rem;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+    `;
 
-    if (structured.body) {
-      const bodyEl = document.createElement('div');
-      bodyEl.textContent = structured.body;
-      bodyEl.style.cssText = `
-        font-family: ${slide.template.fontFamily};
-        font-size: ${slide.template.fontSize.content};
-        font-weight: ${slide.template.fontWeight.content};
-        color: ${slide.template.textColor};
+    const headerText = document.createElement('div');
+    headerText.textContent = structured.title;
+    headerText.style.cssText = `
+      font-family: ${slide.template.fontFamily};
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: ${slide.template.textColor};
+      text-align: center;
+      letter-spacing: ${slide.template.letterSpacing};
+      line-height: ${slide.template.lineHeight};
+      margin: 0;
+      padding: 0;
+    `;
+    headerSection.appendChild(headerText);
+
+    // Create Body Section - Separate box with all corners rounded
+    const bodySection = document.createElement('div');
+    bodySection.className = 'slide-body-section';
+    bodySection.style.cssText = `
+      height: 52%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.4rem 1.6rem;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      flex-direction: column;
+    `;
+
+    const bodyText = document.createElement('div');
+    bodyText.style.cssText = `
+      font-family: ${slide.template.fontFamily};
+      font-size: 1.6rem;
+      font-weight: 400;
+      color: ${slide.template.textColor};
+      line-height: ${slide.template.lineHeight};
+      text-align: left;
+      letter-spacing: ${slide.template.letterSpacing};
+      max-width: 90%;
+      word-wrap: break-word;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin: 0;
+      padding: 0;
+    `;
+
+    // Split content by lines and create separate elements for better canvas rendering
+    const lines = structured.body.split('\n').filter(line => line.trim());
+    lines.forEach(line => {
+      const lineElement = document.createElement('div');
+      lineElement.textContent = line.trim();
+      lineElement.style.cssText = `
+        margin: 0;
+        padding: 0;
         line-height: ${slide.template.lineHeight};
-        letter-spacing: ${slide.template.letterSpacing};
+        text-align: left;
       `;
-      structuredWrapper.appendChild(bodyEl);
-    }
+      bodyText.appendChild(lineElement);
+    });
 
-    // Visual block: render code/JSON only when present in input
+    bodySection.appendChild(bodyText);
+
+    // Add visual content if present
     if (structured.visualSnippet) {
       const codeContainer = document.createElement('div');
       codeContainer.style.cssText = `
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
         padding: 1rem;
+        margin-top: 1.5rem;
         overflow: auto;
-        max-height: 300px;
+        max-height: 150px;
+        max-width: 90%;
       `;
-
-      if (structured.visual) {
-        const caption = document.createElement('div');
-        caption.textContent = structured.visual;
-        caption.style.cssText = `
-          font-size: 0.875rem;
-          opacity: 0.8;
-          margin-bottom: 0.5rem;
-        `;
-        codeContainer.appendChild(caption);
-      }
 
       const pre = document.createElement('pre');
       pre.style.cssText = `
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         color: ${slide.template.textColor};
         white-space: pre-wrap;
         margin: 0;
+        text-align: center;
       `;
       pre.textContent = structured.visualSnippet;
       codeContainer.appendChild(pre);
-      structuredWrapper.appendChild(codeContainer);
+      bodySection.appendChild(codeContainer);
     }
-    finalContent = structuredWrapper;
+
+    sectionsContainer.appendChild(headerSection);
+    sectionsContainer.appendChild(bodySection);
+    contentWrapper.appendChild(sectionsContainer);
+  } else {
+    // Fallback for unstructured content - single clean section
+    const singleSection = document.createElement('div');
+    singleSection.className = 'slide-single-section';
+    singleSection.style.cssText = `
+      width: calc(100% - 4rem);
+      height: calc(100% - 4rem);
+      margin: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+    `;
+
+    const contentElement = document.createElement('div');
+    contentElement.className = 'slide-text';
+    
+    const textContent = slide.template.id === 'regular' ? 
+      slide.content.toLowerCase() : slide.content;
+    
+    contentElement.style.cssText = `
+      font-family: ${slide.template.fontFamily};
+      font-size: 1.6rem;
+      font-weight: 400;
+      color: ${slide.template.textColor};
+      line-height: ${slide.template.lineHeight};
+      letter-spacing: ${slide.template.letterSpacing};
+      max-width: 90%;
+      word-wrap: break-word;
+      hyphens: auto;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin: 0;
+      padding: 0;
+    `;
+
+    // Split content by lines and create separate elements for better canvas rendering
+    const lines = textContent.split('\n').filter(line => line.trim());
+    lines.forEach(line => {
+      const lineElement = document.createElement('div');
+      lineElement.textContent = line.trim();
+      lineElement.style.cssText = `
+        margin: 0;
+        padding: 0;
+        line-height: ${slide.template.lineHeight};
+        text-align: left;
+      `;
+      contentElement.appendChild(lineElement);
+    });
+
+    singleSection.appendChild(contentElement);
+    contentWrapper.appendChild(singleSection);
   }
 
   // Add slide number if enabled
-  const slideNumberElement = document.createElement('div');
-  slideNumberElement.className = 'slide-number';
-  slideNumberElement.textContent = `${slide.slideNumber} / ${slide.totalSlides}`;
-  slideNumberElement.style.cssText = `
-    position: absolute;
-    bottom: 2rem;
-    right: 2rem;
-    font-family: ${slide.template.fontFamily};
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: ${slide.template.accentColor};
-    opacity: 0.8;
-  `;
+  if (includeSlideNumbers) {
+    const slideNumberElement = document.createElement('div');
+    slideNumberElement.className = 'slide-number';
+    slideNumberElement.textContent = `${slide.slideNumber} / ${slide.totalSlides}`;
+    slideNumberElement.style.cssText = `
+      position: absolute;
+      bottom: 2rem;
+      right: 2rem;
+      font-family: ${slide.template.fontFamily};
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: ${slide.template.accentColor};
+      opacity: 0.8;
+    `;
+    slideElement.appendChild(slideNumberElement);
+  }
 
   // Add signature
   const signatureElement = document.createElement('div');
@@ -277,16 +347,8 @@ export function createSlideElement(slide: Slide): HTMLElement {
     letter-spacing: 0.025em;
   `;
 
-  // Assemble the content structure
-  if (slide.template.id === 'regular') {
-    textContainer.appendChild(finalContent);
-    contentWrapper.appendChild(textContainer);
-  } else {
-    contentWrapper.appendChild(finalContent);
-  }
-  
+  // Assemble the final slide structure
   slideElement.appendChild(contentWrapper);
-  slideElement.appendChild(slideNumberElement);
   slideElement.appendChild(signatureElement);
 
   return slideElement;
@@ -344,9 +406,10 @@ export async function slideToImage(
  */
 export async function generateSlideImage(
   slide: Slide,
-  options: Partial<SlideGeneratorOptions> = {}
+  options: Partial<SlideGeneratorOptions> = {},
+  includeSlideNumbers: boolean = true
 ): Promise<Blob> {
-  const slideElement = createSlideElement(slide);
+  const slideElement = createSlideElement(slide, includeSlideNumbers);
   return await slideToImage(slideElement, options);
 }
 
@@ -356,9 +419,10 @@ export async function generateSlideImage(
 export async function downloadSlideImage(
   slide: Slide,
   filename?: string,
-  options: Partial<SlideGeneratorOptions> = {}
+  options: Partial<SlideGeneratorOptions> = {},
+  includeSlideNumbers: boolean = true
 ): Promise<void> {
-  const blob = await generateSlideImage(slide, options);
+  const blob = await generateSlideImage(slide, options, includeSlideNumbers);
   const url = URL.createObjectURL(blob);
   
   const link = document.createElement('a');
@@ -407,12 +471,7 @@ function getSlideStyles(template: Template): Partial<CSSStyleDeclaration> {
 
   // Apply gradient background if specified
   if (template.gradient) {
-    if (template.id === 'regular') {
-      // Special gradient for Regular (formerly Satya Vulise)
-      styles.background = `radial-gradient(ellipse at 70% 50%, #7A00FF 0%, #B366FF 30%, #0D0D0D 70%)`;
-    } else {
-      styles.background = `linear-gradient(${template.gradient.direction}, ${template.gradient.from}, ${template.gradient.to})`;
-    }
+    styles.background = `linear-gradient(${template.gradient.direction}, ${template.gradient.from}, ${template.gradient.to})`;
   }
 
   // Apply border if specified

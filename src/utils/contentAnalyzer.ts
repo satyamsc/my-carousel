@@ -10,10 +10,16 @@ function normalize(text: string): string {
   return text.replace(/\r\n|\r/g, "\n").trim();
 }
 
+function removeQuotes(text: string): string {
+  if (!text) return text;
+  // Remove quotes from the beginning and end of text
+  return text.replace(/^[""''"`]+|[""''"`]+$/g, '').trim();
+}
+
 function extractLabeled(text: string) {
-  const titleMatch = text.match(/Title:\s*[“"']?([\s\S]+?)[”"'](?=\s|$)/i) || text.match(/Title:\s*([\s\S]+?)(?=$|\s*Body|\s*Visual)/i);
-  const bodyMatch = text.match(/Body:\s*[“"']?([\s\S]+?)[”"'](?=\s|$)/i) || text.match(/Body:\s*([\s\S]+?)(?=$|\s*Visual)/i);
-  const visualMatch = text.match(/Visual:\s*[“"']?([\s\S]+?)[”"'](?=\s|$)/i) || text.match(/Visual:\s*([\s\S]+)$/i);
+  const titleMatch = text.match(/(?:Title|Header):\s*[""']?([\s\S]+?)[""'](?=\s|$)/i) || text.match(/(?:Title|Header):\s*([\s\S]+?)(?=$|\s*Body|\s*Visual)/i);
+  const bodyMatch = text.match(/Body:\s*[""']?([\s\S]+?)[""'](?=\s|$)/i) || text.match(/Body:\s*([\s\S]+?)(?=$|\s*Visual)/i);
+  const visualMatch = text.match(/Visual:\s*[""']?([\s\S]+?)[""'](?=\s|$)/i) || text.match(/Visual:\s*([\s\S]+)$/i);
   const visualRaw = visualMatch?.[1]?.trim();
   let visualSnippet: string | undefined;
   if (visualRaw) {
@@ -26,8 +32,8 @@ function extractLabeled(text: string) {
     }
   }
   return {
-    title: titleMatch?.[1]?.trim(),
-    body: bodyMatch?.[1]?.trim(),
+    title: removeQuotes(titleMatch?.[1]?.trim() || ''),
+    body: removeQuotes(bodyMatch?.[1]?.trim() || ''),
     visual: visualRaw,
     visualSnippet,
   } as StructuredContent;
@@ -54,14 +60,14 @@ function heuristics(text: string): StructuredContent {
     const hasEmojiOrQuotes = /["'“”‘’]|[\u{1F300}-\u{1FAFF}]/u.test(line);
     const endsWithColon = /:\s*$/.test(line);
     if (isShort && (hasEmojiOrQuotes || endsWithColon)) {
-      title = line.replace(/:\s*$/, "");
+      title = removeQuotes(line.replace(/:\s*$/, ""));
       break;
     }
   }
   if (!title) {
     // Fallback: first sentence
     const sentence = normalized.split(/(?<=[.!?])\s+/)[0]?.trim();
-    if (sentence && sentence.length <= 120) title = sentence;
+    if (sentence && sentence.length <= 120) title = removeQuotes(sentence);
   }
 
   // Visual: explicit JSON/code block or keyword-based
@@ -91,7 +97,7 @@ function heuristics(text: string): StructuredContent {
   // Tags: extract simple hashtags
   const tags = Array.from(new Set((normalized.match(/#[a-z0-9_]+/gi) || []).map(t => t.toLowerCase())));
 
-  return { title, body, visual, visualSnippet, tags };
+  return { title, body: removeQuotes(body), visual, visualSnippet, tags };
 }
 
 export function analyzeContent(text: string): StructuredContent {

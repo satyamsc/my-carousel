@@ -16,7 +16,8 @@ export async function exportSlidesAsZip(
   slides: Slide[],
   onProgress?: (progress: ExportProgress) => void,
   zipOptions: Partial<ZipExportOptions> = {},
-  slideOptions: Partial<SlideGeneratorOptions> = {}
+  slideOptions: Partial<SlideGeneratorOptions> = {},
+  includeSlideNumbers: boolean = true
 ): Promise<void> {
   const opts = { ...DEFAULT_ZIP_OPTIONS, ...zipOptions };
   const zip = new JSZip();
@@ -45,7 +46,7 @@ export async function exportSlidesAsZip(
       updateProgress('generating', `Generating slide ${i + 1} of ${slides.length}...`);
 
       try {
-        const imageBlob = await generateSlideImage(slide, slideOptions);
+        const imageBlob = await generateSlideImage(slide, slideOptions, includeSlideNumbers);
         const filename = `slide-${String(slide.slideNumber).padStart(2, '0')}.${slideOptions.format || 'png'}`;
         zip.file(filename, imageBlob);
         

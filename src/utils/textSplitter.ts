@@ -69,7 +69,19 @@ export function splitTextIntoSlides(
   }
 
   // Post-process slides to ensure quality
-  return postProcessSlides(slides, opts);
+  let processedSlides = postProcessSlides(slides, opts);
+  
+  // If we have fewer slides than requested, try to split existing slides
+  if (opts.maxSlides && processedSlides.length < opts.maxSlides && processedSlides.length > 0) {
+    processedSlides = ensureMinimumSlides(processedSlides, opts.maxSlides, opts);
+  }
+  
+  // Limit to maxSlides if specified (in case ensureMinimumSlides created too many)
+  if (opts.maxSlides && processedSlides.length > opts.maxSlides) {
+    processedSlides = processedSlides.slice(0, opts.maxSlides);
+  }
+  
+  return processedSlides;
 }
 
 /**
@@ -106,6 +118,59 @@ function splitLongSentence(
 /**
  * Post-processes slides to ensure quality and consistency
  */
+function ensureMinimumSlides(slides: string[], targetCount: number, options: TextSplitterOptions): string[] {
+  if (slides.length >= targetCount) {
+    return slides;
+  }
+
+  const result = [...slides];
+  
+  while (result.length < targetCount) {
+    // Find the longest slide to split
+    let longestIndex = 0;
+    let longestLength = 0;
+    
+    for (let i = 0; i < result.length; i++) {
+      if (result[i].length > longestLength) {
+        longestLength = result[i].length;
+        longestIndex = i;
+      }
+    }
+    
+    const slideToSplit = result[longestIndex];
+    
+    // If the slide is too short to split meaningfully, duplicate content instead
+    if (slideToSplit.length < options.minWordsPerSlide * 10) {
+      // Duplicate the shortest slide
+      let shortestIndex = 0;
+      let shortestLength = Infinity;
+      
+      for (let i = 0; i < result.length; i++) {
+        if (result[i].length < shortestLength) {
+          shortestLength = result[i].length;
+          shortestIndex = i;
+        }
+      }
+      
+      result.push(result[shortestIndex]);
+    } else {
+      // Split the longest slide
+      const words = slideToSplit.split(' ');
+      const midPoint = Math.floor(words.length / 2);
+      
+      const firstHalf = words.slice(0, midPoint).join(' ');
+      const secondHalf = words.slice(midPoint).join(' ');
+      
+      // Replace the original slide with the first half
+      result[longestIndex] = firstHalf;
+      // Add the second half as a new slide
+      result.push(secondHalf);
+    }
+  }
+  
+  return result;
+}
+
 function postProcessSlides(slides: string[], options: TextSplitterOptions): string[] {
   return slides
     .map(slide => slide.trim())
