@@ -11,11 +11,16 @@ export interface AIGeneratedSlides {
   totalSlides: number;
 }
 
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export class AIService {
   private async makeRequest(messages: Array<{ role: string; content: string }>) {
+    // Check if API key is configured
+    if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your-openrouter-api-key-here') {
+      throw new Error('OpenRouter API key is not configured. Please add your API key to the .env file.');
+    }
+
     try {
       const response = await fetch(OPENROUTER_API_URL, {
         method: 'POST',
@@ -34,6 +39,9 @@ export class AIService {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid API key. Please check your OpenRouter API key in the .env file.');
+        }
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
